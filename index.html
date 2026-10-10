@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>入选者人群画像 · 社交匹配活动</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#070b16;
+    --card:rgba(21,27,46,.72);
+    --line:rgba(120,140,200,.14);
+    --txt:#e8ecf6;
+    --muted:#8b93ad;
+    --c1:#818cf8; --c2:#22d3ee; --c3:#f472b6; --c4:#34d399; --c5:#fbbf24;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--txt); line-height:1.65;
+    overflow-x:hidden;
+  }
+  /* ===== 背景装饰 ===== */
+  .bg-decor{position:fixed; inset:0; z-index:-1; overflow:hidden;}
+  .bg-decor::before{
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(120,140,200,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,140,200,.05) 1px, transparent 1px);
+    background-size:56px 56px;
+    mask-image:radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 75%);
+  }
+  .orb{position:absolute; border-radius:50%; filter:blur(90px); opacity:.5; animation:float 14s ease-in-out infinite;}
+  .orb.o1{width:480px;height:480px; background:#3730a3; top:-160px; left:-120px;}
+  .orb.o2{width:420px;height:420px; background:#0e7490; top:-100px; right:-100px; animation-delay:-4s;}
+  .orb.o3{width:360px;height:360px; background:#9d174d; top:340px; left:38%; opacity:.28; animation-delay:-8s;}
+  @keyframes float{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(30px,-26px) scale(1.06);}
+  }
+
+  .wrap{max-width:1140px; margin:0 auto; padding:0 24px 90px;}
+
+  /* ===== Hero ===== */
+  .hero{text-align:center; padding:96px 24px 56px; position:relative;}
+  .hero .badge{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12.5px; letter-spacing:3px; color:#a5b4fc;
+    border:1px solid rgba(129,140,248,.35); border-radius:999px;
+    padding:6px 18px; margin-bottom:26px;
+    background:rgba(99,102,241,.08);
+    backdrop-filter:blur(6px);
+  }
+  .hero .badge .dot{width:6px;height:6px;border-radius:50%;background:#22d3ee; box-shadow:0 0 10px #22d3ee; animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .hero h1{
+    font-size:clamp(34px,5.5vw,56px); font-weight:900; letter-spacing:1px;
+    background:linear-gradient(115deg,#e0e7ff 10%,#a5b4fc 35%,#67e8f9 60%,#f0abfc 85%);
+    background-size:200% auto;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shine 7s linear infinite;
+    margin-bottom:18px;
+  }
+  @keyframes shine{to{background-position:200% center;}}
+  .hero .sub{color:var(--muted); font-size:15.5px; max-width:560px; margin:0 auto;}
+  .hero .sub b{color:#c7d2fe; font-weight:600;}
+
+  /* ===== KPI ===== */
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin:10px 0 46px;}
+  .kpi{
+    position:relative; border-radius:20px; padding:26px 26px 22px;
+    background:var(--card); border:1px solid var(--line);
+    backdrop-filter:blur(14px);
+    overflow:hidden; transition:transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s;
+  }
+  .kpi:hover{transform:translateY(-5px); border-color:rgba(129,140,248,.4);}
+  .kpi::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--ac,#818cf8), transparent);
+    opacity:.8;
+  }
+  .kpi .icon{
+    width:38px;height:38px;border-radius:11px; display:grid; place-items:center;
+    font-size:19px; margin-bottom:14px;
+    background:color-mix(in srgb, var(--ac) 14%, transparent);
+    border:1px solid color-mix(in srgb, var(--ac) 30%, transparent);
+  }
+  .kpi .num{font-size:38px; font-weight:800; color:var(--ac); line-height:1.1; font-variant-numeric:tabular-nums;}
+  .kpi .num small{font-size:17px; font-weight:700;}
+  .kpi .label{font-size:13px; color:var(--muted); margin-top:4px;}
+  .kpi.a{--ac:#818cf8} .kpi.b{--ac:#22d3ee} .kpi.c{--ac:#f472b6} .kpi.d{--ac:#34d399}
+
+  /* ===== Section ===== */
+  .sec{margin-bottom:30px;}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin-bottom:18px;}
+  .sec-head .no{
+    font-size:12px; font-weight:700; letter-spacing:2px; color:#0b0f1a;
+    background:linear-gradient(120deg,#818cf8,#22d3ee);
+    border-radius:7px; padding:3px 10px;
+  }
+  .sec-head h2{font-size:21px; font-weight:800; letter-spacing:.5px;}
+  .sec-head .hint{font-size:12.5px; color:var(--muted); margin-left:auto; text-align:right;}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:22px;
+    padding:30px 30px 24px; backdrop-filter:blur(14px);
+    position:relative; overflow:hidden;
+  }
+  .card::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(600px 200px at 20% -10%, rgba(129,140,248,.09), transparent 60%);
+  }
+  .chart{width:100%; height:400px; position:relative; z-index:1;}
+  .chart.tall{height:460px;}
+  .grid2{display:grid; grid-template-columns:1.15fr .85fr; gap:30px;}
+  @media (max-width:900px){.grid2{grid-template-columns:1fr;}}
+
+  /* ===== Insights ===== */
+  .insights{list-style:none; margin-top:20px; display:grid; gap:12px; position:relative; z-index:1;}
+  .insights li{
+    display:flex; gap:12px; align-items:flex-start;
+    background:rgba(10,14,26,.55); border:1px solid var(--line);
+    padding:14px 18px; border-radius:14px;
+    font-size:14px; color:#c3c9dd;
+    transition:border-color .3s, transform .3s;
+  }
+  .insights li:hover{border-color:rgba(34,211,238,.35); transform:translateX(4px);}
+  .insights li::before{
+    content:""; flex:none; width:7px; height:7px; border-radius:50%;
+    background:linear-gradient(120deg,#818cf8,#22d3ee);
+    margin-top:8px; box-shadow:0 0 8px rgba(34,211,238,.7);
+  }
+  .insights b{color:#7ee7f9; font-weight:700;}
+
+  /* ===== Persona ===== */
+  .persona-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:18px; position:relative; z-index:1;}
+  .persona{
+    background:rgba(10,14,26,.55); border:1px solid var(--line); border-radius:18px;
+    padding:24px; position:relative; overflow:hidden;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s, box-shadow .35s;
+  }
+  .persona:hover{
+    transform:translateY(-6px);
+    border-color:color-mix(in srgb, var(--pc) 45%, transparent);
+    box-shadow:0 18px 44px -18px color-mix(in srgb, var(--pc) 45%, transparent);
+  }
+  .persona::before{
+    content:""; position:absolute; width:130px; height:130px; border-radius:50%;
+    background:var(--pc); filter:blur(70px); opacity:.16; top:-50px; right:-40px;
+  }
+  .persona .emoji{
+    width:44px;height:44px; border-radius:13px; display:grid; place-items:center; font-size:22px;
+    background:color-mix(in srgb, var(--pc) 15%, transparent);
+    border:1px solid color-mix(in srgb, var(--pc) 32%, transparent);
+    margin-bottom:14px;
+  }
+  .persona h3{font-size:16.5px; font-weight:800; margin-bottom:2px;}
+  .persona .pct{font-size:12px; font-weight:700; color:var(--pc); letter-spacing:.5px; margin-bottom:10px; display:inline-block;}
+  .persona p{font-size:13.5px; color:#9aa2bc;}
+  .p1{--pc:#818cf8}.p2{--pc:#fbbf24}.p3{--pc:#22d3ee}.p4{--pc:#34d399}.p5{--pc:#f472b6}.p6{--pc:#a78bfa}
+
+  footer{
+    text-align:center; color:#5b6379; font-size:12.5px; padding-top:36px; line-height:2;
+  }
+  footer .line{width:60px;height:1px;background:linear-gradient(90deg,transparent,#3b4465,transparent);margin:0 auto 18px;}
+
+  /* 进入动画 */
+  .reveal{opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1);}
+  .reveal.in{opacity:1; transform:none;}
+</style>
+</head>
+<body>
+
+<div class="bg-decor">
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="badge"><span class="dot"></span>PEOPLE ANALYTICS</div>
+    <h1>入选者人群画像</h1>
+    <p class="sub">基于 <b>71 位入选者</b>的报名背景 与 <b>213 条一对一匹配记录</b><br>一场高密度 AI 早期生态的人群切片</p>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpis reveal">
+    <div class="kpi a"><div class="icon">🎫</div><div class="num" data-n="71">0</div><div class="label">入选者（号码牌）</div></div>
+    <div class="kpi b"><div class="icon">🔗</div><div class="num" data-n="213">0</div><div class="label">匹配链接 · 每人 3 位</div></div>
+    <div class="kpi c"><div class="icon">🚀</div><div class="num" data-n="22">0</div><div class="label">创业者 · 占比 31%</div></div>
+    <div class="kpi d"><div class="icon">💰</div><div class="num" data-n="12">0</div><div class="label">投资人 / 金融从业者</div></div>
+  </div>
+
+  <!-- 角色构成 -->
+  <div class="sec reveal">
+    <div class="sec-head">
+      <span class="no">01</span><h2>角色构成</h2>
+      <span class="hint">创业者与投资人合计近半<br>创投双边密度极高</span>
+    </div>
+    <div class="card">
+      <div id="roles" class="chart tall"></div>
+      <ul class="insights">
+        <li><b>创业者是绝对主力</b>：22 位创始人/联创/C-level，占 31%；其中 3 位拥有博士/助理教授背景（浙大 AI PhD、浙大联培 PhD、深大助理教授），学术创业浓度高。</li>
+        <li><b>投资人密度惊人</b>：VC/PE 10 位 + 券商基金 2 位，覆盖北极光、腾讯投资、云启、成为资本、北京机器人基金、易方达、中信证券等机构。</li>
+        <li><b>学生力量年轻且优质</b>：13 位在校学生 + 6 位学术研究者，从高中生独立开发者到清华/上交博士，跨度极大。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 领域方向 -->
+  <div class="sec reveal">
+    <div class="sec-head">
+      <span class="no">02</span><h2>技术与业务方向</h2>
+      <span class="hint">按主要赛道归类<br>投资机构按所投方向计入</span>
+    </div>
+    <div class="card">
+      <div id="domains" class="chart tall"></div>
+      <ul class="insights">
+        <li><b>AI 应用/产品/出海最热</b>（19 人）：A2A dating app、AI 写作 IDE、13 万 MAU 的 AI 升学平台、企业流程 AI 化……落地场景多元。</li>
+        <li><b>具身智能/机器人强势</b>（10 人）：具身数据基础设施、仿生机器人、VLA 视觉、机器人基金，产业链上下游齐聚。</li>
+        <li><b>前沿研究有厚度</b>：世界模型/生成模型 5 人、大模型/Agent 5 人、AI 安全治理 2 人，含扩散模型、可交互世界模型一作等硬核方向。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 院校 -->
+  <div class="sec reveal">
+    <div class="sec-head">
+      <span class="no">03</span><h2>院校图谱</h2>
+      <span class="hint">29 位入选者披露院校<br>其余多为职场人未注明</span>
+    </div>
+    <div class="grid2">
+      <div class="card"><div id="schools" class="chart tall"></div></div>
+      <div class="card"><div id="geo" class="chart tall"></div></div>
+    </div>
+  </div>
+
+  <!-- 人气榜 -->
+  <div class="sec reveal">
+    <div class="sec-head">
+      <span class="no">04</span><h2>匹配网络人气榜</h2>
+      <span class="hint">213 条推荐记录中<br>被推荐次数最多的人</span>
+    </div>
+    <div class="card">
+      <div id="toprec" class="chart"></div>
+      <ul class="insights">
+        <li><b>Maxe（Robo skill 联创 · 与英伟达合作）</b>被推荐 7 次居首 —— 具身智能是当前最具「连接需求」的赛道。</li>
+        <li>世界模型 lead <b>卢伟峰</b>、福布斯 U30 <b>池光耀</b>、独立开发者 <b>Kevin SCP</b> 各获 6 次推荐：研究、创业、开发者三类角色平分秋色。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 人群画像 -->
+  <div class="sec reveal">
+    <div class="sec-head">
+      <span class="no">05</span><h2>六类典型人群画像</h2>
+      <span class="hint">这场活动本质上<br>是一个 AI 早期生态撮合场</span>
+    </div>
+    <div class="card">
+      <div class="persona-grid">
+        <div class="persona p1"><div class="emoji">🚀</div><h3>硬核创业者</h3><span class="pct">约 31%</span><p>已跑出产品的创始人：13 万 MAU 的 AI 升学平台、福布斯 U30 的自进化 Agent、已天使轮的具身视觉公司。他们来融资、招人、找合作。</p></div>
+        <div class="persona p2"><div class="emoji">💰</div><h3>一线机构投资人</h3><span class="pct">约 17%</span><p>北极光、腾讯投资、云启、成为资本、北京机器人基金等，主看大模型、具身、AI Infra。手握真金白银，目标明确：扫项目。</p></div>
+        <div class="persona p3"><div class="emoji">🔬</div><h3>前沿研究者</h3><span class="pct">约 27%（含学生）</span><p>清华 AI 治理博士、上交世界模型 lead、复旦扩散模型、北大多模态一作。学术与产业边界模糊，不少人同时在创业。</p></div>
+        <div class="persona p4"><div class="emoji">🏢</div><h3>大厂 AI 中坚</h3><span class="pct">约 13%</span><p>百度、腾讯、携程、Moonshot、商汤、沐曦、世纪互联的产品/技术/市场负责人，带着真实业务场景和资源入场。</p></div>
+        <div class="persona p5"><div class="emoji">🎨</div><h3>创作者与 KOL</h3><span class="pct">约 10%</span><p>剑桥百万博主、30 万粉英语博主、财经视频播客主理人、AIGC 影视制片 —— 内容势能是这类人的核心资产。</p></div>
+        <div class="persona p6"><div class="emoji">🌏</div><h3>全球化一代</h3><span class="pct">海外院校占 28%（8/29）</span><p>UCL、宾大、剑桥、帝国理工、UT Austin、多伦多大学背景，叠加出海创业（韩国市场、海外获客、电动卡丁船），天然带着全球视野。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="line"></div>
+    数据来源：入选者号码牌名单 71 人 · 一对一匹配结果 213 条<br>
+    分类基于报名自我介绍归纳，多重身份者按主要身份计入
+  </footer>
+</div>
+
+<script>
+/* ===== 图表主题 ===== */
+const AX = {color:'#8b93ad'}, SPLIT = {lineStyle:{color:'rgba(120,140,200,.12)'}};
+function mk(id, opt){
+  const el = document.getElementById(id);
+  const c = echarts.init(el);
+  opt.backgroundColor = 'transparent';
+  c.setOption(opt);
+  window.addEventListener('resize', ()=>c.resize());
+  return c;
+}
+const TIP = {
+  backgroundColor:'rgba(13,18,34,.94)', borderColor:'rgba(129,140,248,.35)',
+  textStyle:{color:'#e8ecf6', fontSize:13}, borderWidth:1,
+  extraCssText:'border-radius:10px; backdrop-filter:blur(8px); box-shadow:0 10px 30px rgba(0,0,0,.5);'
+};
+
+/* ===== 01 角色构成：玫瑰图 ===== */
+mk('roles', {
+  tooltip:{...TIP, trigger:'item', formatter:'{b}<br/><b style="color:#7ee7f9">{c} 人 · {d}%</b>'},
+  legend:{bottom:0, icon:'circle', itemWidth:9, itemHeight:9, itemGap:16,
+    textStyle:{color:'#9aa2bc', fontSize:12.5}, type:'scroll'},
+  series:[{
+    type:'pie', roseType:'radius',
+    radius:['16%','66%'], center:['50%','45%'],
+    itemStyle:{borderRadius:9, borderColor:'#0a0e1a', borderWidth:3,
+      shadowBlur:18, shadowColor:'rgba(0,0,0,.45)'},
+    label:{formatter:'{b}\n{font|{c} 人}', color:'#c3c9dd', fontSize:12, lineHeight:17,
+      rich:{font:{color:'#7ee7f9', fontWeight:700, fontSize:12.5}}},
+    labelLine:{lineStyle:{color:'rgba(120,140,200,.35)'}, length:14, length2:10},
+    data:[
+      {value:22, name:'创业者 · 创始人/联创/CXO', itemStyle:{color:'#6366f1'}},
+      {value:13, name:'在校学生', itemStyle:{color:'#22d3ee'}},
+      {value:10, name:'投资人 · VC/PE', itemStyle:{color:'#f472b6'}},
+      {value:9,  name:'大厂/企业员工', itemStyle:{color:'#34d399'}},
+      {value:6,  name:'学术研究 · 博士/研究员', itemStyle:{color:'#a78bfa'}},
+      {value:4,  name:'运营/市场/社区', itemStyle:{color:'#fbbf24'}},
+      {value:3,  name:'创作者/KOL', itemStyle:{color:'#fb923c'}},
+      {value:2,  name:'独立开发者', itemStyle:{color:'#4ade80'}},
+      {value:2,  name:'金融 · 券商/基金', itemStyle:{color:'#60a5fa'}},
+    ]
+  }],
+  graphic:[{type:'text', left:'center', top:'41%',
+    style:{text:'71', fontSize:34, fontWeight:800, fill:'#e8ecf6', textAlign:'center'}},
+    {type:'text', left:'center', top:'48%',
+    style:{text:'入选者', fontSize:12, fill:'#8b93ad', textAlign:'center'}}]
+});
+
+/* ===== 02 领域方向：胶囊条形 ===== */
+const domNames = ['其他/探索中','AI安全/治理','硬件/消费电子','AI Infra/算力/芯片','大模型/LLM/Agent','世界模型/生成模型','社区/媒体/生态','AIGC/内容创作','投资/金融','具身智能/机器人','AI应用/产品/出海'];
+const domVals  = [2,2,3,4,5,5,5,8,8,10,19];
+const domCols  = ['#475569','#60a5fa','#fb923c','#4ade80','#a78bfa','#f472b6','#fbbf24','#34d399','#facc15','#22d3ee','#6366f1'];
+mk('domains', {
+  tooltip:{...TIP, trigger:'axis', axisPointer:{type:'shadow', shadowStyle:{color:'rgba(129,140,248,.07)'}},
+    formatter:p=>`${p[0].name}<br/><b style="color:#7ee7f9">${p[0].value} 人</b> · 占 ${(p[0].value/71*100).toFixed(1)}%`},
+  grid:{left:8, right:64, top:14, bottom:8, containLabel:true},
+  xAxis:{type:'value', splitLine:SPLIT, axisLabel:AX},
+  yAxis:{type:'category', inverse:true, data:domNames,
+    axisLabel:{color:'#c3c9dd', fontSize:13, margin:14},
+    axisLine:{show:false}, axisTick:{show:false}},
+  series:[{
+    type:'bar', barWidth:15,
+    showBackground:true, backgroundStyle:{color:'rgba(120,140,200,.07)', borderRadius:99},
+    label:{show:true, position:'right', distance:10, color:'#7ee7f9', fontWeight:700, fontSize:12.5, formatter:'{c} 人'},
+    itemStyle:{borderRadius:99},
+    data:domVals.map((v,i)=>({value:v, itemStyle:{
+      color:{type:'linear',x:0,y:0,x2:1,y2:0,colorStops:[
+        {offset:0,color:domCols[i]+'55'},{offset:1,color:domCols[i]}]},
+      shadowBlur:12, shadowColor:domCols[i]+'66'}}))
+  }]
+});
+
+/* ===== 03a 院校：柱图 ===== */
+const schNames=['南京理工大学','上海交通大学','中国科学技术大学','对外经贸大学','深圳大学','中国传媒大学','华东师范大学','同济大学','湖南大学','清华大学','浙江大学','复旦大学','哈尔滨工业大学','北京大学'];
+const schVals=[1,1,1,1,1,1,1,1,1,1,2,2,2,5];
+mk('schools', {
+  tooltip:{...TIP, trigger:'axis', axisPointer:{type:'shadow', shadowStyle:{color:'rgba(129,140,248,.07)'}},
+    formatter:p=>`${p[0].name}<br/><b style="color:#7ee7f9">${p[0].value} 人</b>`},
+  grid:{left:8, right:44, top:30, bottom:8, containLabel:true},
+  xAxis:{type:'value', splitLine:SPLIT, axisLabel:AX, max:6},
+  yAxis:{type:'category', inverse:true, data:schNames,
+    axisLabel:{color:'#c3c9dd', fontSize:12.5, margin:12},
+    axisLine:{show:false}, axisTick:{show:false}},
+  series:[{
+    type:'bar', barWidth:12,
+    label:{show:true, position:'right', distance:8, color:'#a5b4fc', fontWeight:700, fontSize:12},
+    itemStyle:{borderRadius:99,
+      color:{type:'linear',x:0,y:0,x2:1,y2:0,colorStops:[{offset:0,color:'#6366f155'},{offset:1,color:'#818cf8'}]}},
+    data:schVals,
+    markPoint:{symbol:'pin', symbolSize:44, itemStyle:{color:'#f472b6'},
+      label:{color:'#fff', fontSize:11, fontWeight:700},
+      data:[{coord:['北京大学',5], value:'Top'}]}
+  }],
+  graphic:[{type:'text', right:14, top:2,
+    style:{text:'国内院校（21 人）', fontSize:12, fill:'#8b93ad'}}]
+});
+
+/* ===== 03b 国内 vs 海外：双环 ===== */
+mk('geo', {
+  tooltip:{...TIP, trigger:'item', formatter:'{b}<br/><b style="color:#7ee7f9">{c} 人 · {d}%</b>'},
+  legend:{bottom:6, icon:'circle', itemWidth:9, itemHeight:9, itemGap:14,
+    textStyle:{color:'#9aa2bc', fontSize:12}},
+  series:[
+    {type:'pie', radius:['34%','54%'], center:['50%','44%'],
+     itemStyle:{borderRadius:9, borderColor:'#0a0e1a', borderWidth:3},
+     label:{formatter:'{b}\n{c} 人', color:'#dfe4f2', fontSize:13, fontWeight:700, lineHeight:18},
+     labelLine:{lineStyle:{color:'rgba(120,140,200,.35)'}},
+     data:[
+       {value:21, name:'国内院校', itemStyle:{color:'#6366f1', shadowBlur:16, shadowColor:'#6366f166'}},
+       {value:8,  name:'海外院校', itemStyle:{color:'#22d3ee', shadowBlur:16, shadowColor:'#22d3ee66'}},
+     ]},
+    {type:'pie', radius:['66%','80%'], center:['50%','44%'],
+     itemStyle:{borderRadius:6, borderColor:'#0a0e1a', borderWidth:2},
+     label:{formatter:'{b}', fontSize:11, color:'#8b93ad'},
+     labelLine:{length:8, length2:6, lineStyle:{color:'rgba(120,140,200,.3)'}},
+     data:[
+       {value:1, name:'UCL', itemStyle:{color:'#0ea5b7'}},
+       {value:1, name:'宾大', itemStyle:{color:'#0891b2'}},
+       {value:1, name:'剑桥', itemStyle:{color:'#2563eb'}},
+       {value:1, name:'帝国理工', itemStyle:{color:'#3b82f6'}},
+       {value:1, name:'UT Austin', itemStyle:{color:'#60a5fa'}},
+       {value:1, name:'密歇根', itemStyle:{color:'#38bdf8'}},
+       {value:1, name:'多伦多', itemStyle:{color:'#2dd4bf'}},
+       {value:1, name:'南安普顿', itemStyle:{color:'#5eead4'}},
+     ]}
+  ]
+});
+
+/* ===== 04 人气榜 ===== */
+const topNames=['姜天雨','余泽锴','一萌','王新煜','张贤杰','吴翔宇','Kevin SCP','池光耀','卢伟峰','Maxe'];
+const topVals=[4,4,5,5,5,5,6,6,6,7];
+const topRoles=['成为资本 · 光计算','复旦&西湖 · 扩散模型','易方达 · 财经博主','清华 · AI治理博士','携程 · AI产品负责人','灵境深瞳 · 具身视觉','独立开发者','语核科技 · 福布斯U30','上交博士 · 世界模型','Robo skill · 英伟达合作'];
+mk('toprec', {
+  tooltip:{...TIP, trigger:'axis', axisPointer:{type:'shadow', shadowStyle:{color:'rgba(244,114,182,.06)'}},
+    formatter:p=>{const i=p[0].dataIndex; return `<b>${p[0].name}</b><br/><span style="color:#9aa2bc;font-size:12px">${topRoles[i]}</span><br/>被推荐 <b style="color:#f9a8d4">${p[0].value} 次</b>`;}},
+  grid:{left:8, right:96, top:10, bottom:8, containLabel:true},
+  xAxis:{type:'value', splitLine:SPLIT, axisLabel:AX, max:8},
+  yAxis:{type:'category', inverse:true, data:topNames,
+    axisLabel:{color:'#e8ecf6', fontSize:13.5, fontWeight:600, margin:14},
+    axisLine:{show:false}, axisTick:{show:false}},
+  series:[{
+    type:'bar', barWidth:16,
+    showBackground:true, backgroundStyle:{color:'rgba(120,140,200,.07)', borderRadius:99},
+    label:{show:true, position:'right', distance:10, fontSize:12, fontWeight:700,
+      color:'#f9a8d4', formatter:'{c} 次推荐'},
+    itemStyle:{borderRadius:99},
+    data:topVals.map((v,i)=>({value:v, itemStyle:{
+      color:{type:'linear',x:0,y:0,x2:1,y2:0,colorStops:[
+        {offset:0,color: i>=7 ? '#a78bfa55':'#a78bfa33'},
+        {offset:1,color: i>=7 ? '#f472b6':'#a78bfa'}]},
+      shadowBlur: i>=7?16:8, shadowColor:'#f472b655'}}))
+  }]
+});
+
+/* ===== 数字滚动 ===== */
+document.querySelectorAll('.kpi .num').forEach(el=>{
+  const target=+el.dataset.n; const t0=performance.now(); const dur=1300;
+  (function tick(t){
+    const p=Math.min((t-t0)/dur,1), e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(target*e);
+    if(p<1) requestAnimationFrame(tick);
+  })(t0);
+});
+
+/* ===== 进入动画 ===== */
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add('in'); io.unobserve(e.target);}
+}),{threshold:.08});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
